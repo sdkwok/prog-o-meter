@@ -14,6 +14,7 @@ __version__ = "1.0.0"
 __license__ = "MIT"
 
 from random import randint
+import os
 import datetime
 from congratulations.Congratulations import Congratulations
 try:
@@ -33,8 +34,8 @@ class ProgressGUI(object):
         days: the number of days the user have completed.
         GOAL: The number of days the user is trying to complete (hardcoded to be 100, but might wanna add feature for user to chooses this themselves in the future).
         rectagle_list = a list of all rectangle elements to be displayed on canvas.
-    """ 
-    
+    """
+
     def __init__(self, user, _logname):
         """Open a Tkinter window showing the prog-o-meter, a greeting text, and a button to add a new day to progress.
 
@@ -89,14 +90,14 @@ class ProgressGUI(object):
 
     def button_layout(self):
         """Display a button with the text "1 more day!" and a button with the text "Log" on the canvas.
-        
-        Creates and display a button with the text "1 more day!" with the function add_day() as callback function. If user have already reached their goal, the button is displayed, but is disabled. 
+
+        Creates and display a button with the text "1 more day!" with the function add_day() as callback function. If user have already reached their goal, the button is displayed, but is disabled.
         Creates and displays a button with the text "Make log entry", with the function log_entry() as callback function.
-       
+
         Attributes:
             add_day_button: A button with the text "1 more day!", which calls the function add_day
             add_log_button: A button with the text "Make log entry", which calls the function log_entry
-            
+
         """
         self.add_day_button = Tk.Button(self.root, text = "1 more day!", command = self.add_day)
         self.add_day_button.pack()
@@ -166,7 +167,7 @@ class ProgressGUI(object):
             self.add_day_button.config(state = "disabled")
             self.canvas.itemconfig(self.greeting, text=("".join(("Congrats! ", self.username))))
             Congratulations()        # Open congratulations window with link to share on Twitter
-    
+
     def new_no(self, current_greeting):
         """Allows to choose a new encouragement from the list each time the button is clicked so that the encouragements are not repeated.
             Attributes:
@@ -178,7 +179,7 @@ class ProgressGUI(object):
             new = randint(0, 9)        #get a new random integer between 0-9
         self.current_greeting = new
         return self.current_greeting
-    
+
     def log_entry(self):
         """Opens a new window for user to make a new log entry. The user can make any number of entries they wish.
 
@@ -202,7 +203,7 @@ class ProgressGUI(object):
 
         def update_log():
             """Updates the log with the text the user typed into the text widget.
-            
+
             Calls update_log_file to save the text to the [USERNAME]_log.txt file.
             """
             input_value = text_box.get("1.0",'end-1c')
@@ -215,7 +216,7 @@ class ProgressGUI(object):
         save.pack(side=Tk.LEFT, expand=True)
         clear.pack(side=Tk.LEFT, expand=True)
         close.pack(side=Tk.LEFT, expand=True)
-        
+
 class StartGUI(object):
 
     """Class contains everything related to starting up the application as a new or returning user.
@@ -343,12 +344,29 @@ class UsernameGUI(object):
             submit_button: Button with the text "Submit", which calls the function save_and_close
         """
         self.submit_button = Tk.Button(self.root, text = "Submit", command = self.save_and_close)
-        self.submit_button.pack()
+        self.return_button = Tk.Button(self.root, text = "Go back to start", command = lambda: return_to_start(self.root))
+        self.return_button.pack(side='left', expand=True, pady=10)
+        self.submit_button.pack(side='left', expand=True, pady=10)
         self.root.bind('<Return>', self.save_and_close)
+
     def save_and_close(self, event=None):
-        """Save input text as username, then close Tkinter window. """
-        self.username = self.text_entry.get()
-        self.root.destroy()
+        """Save input text as username, then close Tkinter window.
+
+        If user is a returning user, first checks to see whether the entered text is an existing username, then displays a warning if
+        it is not. User can then enter a new name.
+        """
+        if not os.path.isfile(self.text_entry.get()+'.txt') and self.user_type == 1:    #if user is a returning user, check if there's a file with the given name
+            user_not_found = Tk.Toplevel(self.root)
+            user_not_found.title("Whoops!")
+            user_not_found_label = Tk.Label(user_not_found, text="We can't find you! Please enter the same name you used last time for prog-o-meter")
+            user_not_found_label.pack(side = "top", fill='both', expand=True, pady=10)
+            ok = Tk.Button(user_not_found, text="OK", command = user_not_found.destroy)
+            ok.pack()
+            user_not_found.mainloop()
+        else:
+            self.username = self.text_entry.get()
+            self.root.destroy()
+
     def get_name(self):
         """Return the username. """
         return self.username
@@ -357,8 +375,8 @@ def update_log_file(_logname, _log_entry):
     """ Updates the file [username]_log.txt, adding user's latest update.
 
     The timestamp is added above the update, with a newline in between. A newline is also added after the update.
-    
-    Args: 
+
+    Args:
         _logname: Name of the file to be updated. Should have format [username]_log.txt (username in all lowercase).
         _log_entry: The text which is to be appended to the file.
     """
@@ -369,6 +387,17 @@ def update_log_file(_logname, _log_entry):
     "\n"
     + str(_log_entry) + "\n")
     log_text.close()
+
+
+def return_to_start(window):
+    """Destroys current window and restarts mainroutine.
+
+    Args:
+        window: name of the window to be destroyed.
+    """
+    window.destroy()
+    main()
+
 
 def main():
     """Mainroutine to run the prog-o-meter program.
